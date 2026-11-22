@@ -4,7 +4,7 @@ A modern Point-of-Sale (POS) backend and management REST API built with **Flask*
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Create & Activate Virtual Environment
 ```powershell
@@ -45,7 +45,7 @@ The server will start at: `http://127.0.0.1:5000/`
 
 ---
 
-## 🔑 Access Points
+##  Access Points
 
 - **Admin Dashboard:** [http://127.0.0.1:5000/admin/](http://127.0.0.1:5000/admin/)
 - **API Login Endpoint:** [http://127.0.0.1:5000/api/v1/login/](http://127.0.0.1:5000/api/v1/login/)
@@ -55,10 +55,10 @@ The server will start at: `http://127.0.0.1:5000/`
 
 ---
 
-## 📚 Documentation
+##  Documentation
 
 Detailed documentation available in this repository:
 
-- 📖 **[Setup & Troubleshooting Guide](SETUP.md)** — Step-by-step installation, prerequisites, and common fixes.
-- 🔌 **[API Reference](API_REFERENCE.md)** — Complete list of REST API endpoints and payload examples.
-- 🏗️ **[System Architecture](ARCHITECTURE.md)** — Project structure, database models, and design patterns.
+-  **[Setup & Troubleshooting Guide](SETUP.md)** — Step-by-step installation, prerequisites, and common fixes.
+-  **[API Reference](API_REFERENCE.md)** — Complete list of REST API endpoints and payload examples.
+-  **[System Architecture](ARCHITECTURE.md)** — Project structure, database models, and design patterns.
