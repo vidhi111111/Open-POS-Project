@@ -1,26 +1,64 @@
 # Open POS API
- 
-Point-of-sale REST API built with Flask, PostgreSQL and Flask-Admin.
- 
-## Documentation
- 
-All docs are in the [docs/](docs/) folder:
- 
-1. [Requirements](docs/01-requirements.md): what to install (Python 3.8, PostgreSQL, Git, uv)
-2. [Setup](docs/02-setup.md): one-time setup steps
-3. [Running](docs/03-running.md): start and stop the server
-4. [API testing](docs/04-api-testing.md): curl commands, plus a [Postman collection](docs/open-pos-api.postman_collection.json)
-5. [Troubleshooting](docs/05-troubleshooting.md): common errors and known bugs
- 
-## Quick start
- 
+
+A modern Point-of-Sale (POS) backend and management REST API built with **Flask**, **PostgreSQL**, and **Flask-Admin**.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Create & Activate Virtual Environment
 ```powershell
-uv venv pos_venv --python 3.8
-uv pip install --python pos_venv -r requirements.txt
-.\pos_venv\Scripts\activate
-python manager.py create_db
-python manager.py create_admin -e admin@example.com -p admin123
-python manager.py runserver -h 127.0.0.1 -p 5000
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 ```
- 
-Open http://127.0.0.1:5000/api/v1/login/ and log in with `admin@example.com` / `admin123`.
+
+### 2. Install Dependencies
+```powershell
+pip install "setuptools<70"
+pip install -r requirements.txt
+```
+
+### 3. Configure Database
+Ensure PostgreSQL is running, create the database in pgAdmin or psql:
+```sql
+CREATE DATABASE "pos";
+```
+Ensure [.env](.env) contains your database connection string:
+```env
+POSTGRE_CONNECTION_STRING=postgresql+psycopg2://postgres:YOUR_PASSWORD@localhost:5432/pos
+```
+
+### 4. Initialize Database & Create Admin User
+```powershell
+# Create database tables
+flask create-db
+
+# Create initial admin account
+flask create-admin -e admin@pos.com -p "admin123" -n "Admin User" -m "9999999999"
+```
+
+### 5. Run the Server
+```powershell
+flask run
+```
+The server will start at: `http://127.0.0.1:5000/`
+
+---
+
+## 🔑 Access Points
+
+- **Admin Dashboard:** [http://127.0.0.1:5000/admin/](http://127.0.0.1:5000/admin/)
+- **API Login Endpoint:** [http://127.0.0.1:5000/api/v1/login/](http://127.0.0.1:5000/api/v1/login/)
+- **Default Admin Credentials:**
+  - **Email:** `admin@pos.com`
+  - **Password:** `admin123`
+
+---
+
+## 📚 Documentation
+
+Detailed documentation available in this repository:
+
+- 📖 **[Setup & Troubleshooting Guide](SETUP.md)** — Step-by-step installation, prerequisites, and common fixes.
+- 🔌 **[API Reference](API_REFERENCE.md)** — Complete list of REST API endpoints and payload examples.
+- 🏗️ **[System Architecture](ARCHITECTURE.md)** — Project structure, database models, and design patterns.
