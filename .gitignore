@@ -1,0 +1,115 @@
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+
+# Python Cache & Compiled Files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+.ENV/
+[Bb]in/
+[Ii]nclude/
+[Ll]ib/
+[Ss]cripts/
+pyvenv.cfg
+pip-selfcheck.json
+
+
+# Python Packaging & Build
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+develop-eggs/
+*.manifest
+*.spec
+
+
+# Logs & Temporary Files
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+
+# IDE & Editor Files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+out/
+
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+
+# Testing & Coverage
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+nosetests.xml
+.cache/
+tests/cover/
+*,cover
+
+
+# Flask
+instance/
+.webassets-cache
+
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Documentation Build
+docs/_build/
+target/
+
+
+# Deployment & Cloud
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+
+# OS Files
+.DS_Store
+Thumbs.db
+Desktop.ini
