@@ -111,23 +111,80 @@ JSON Response (HTTP Status Code + Serialized Payload)
 
 ---
 
-## 5. Resource Architecture: Primary vs Association Resources
+## 5. Resource Architecture: ModelResource vs AssociationModelResource
 
 The business logic in `src/utils/resource.py` separates entities into two specialized base classes:
 
 ### ModelResource
-- **Purpose:** Used for primary, standalone domain models (e.g., `Product`, `Customer`, `Order`, `User`).
-- **Capabilities:** Manages full CRUD operations (`add_resource`, `update_resource`, `delete_resource`, and filtered list queries with pagination and CSV export).
-- **Permission Scope:** Permission hooks take only the object instance (`has_read_permission(qs)`, `has_change_permission(obj)`, `has_delete_permission(obj)`), focusing solely on whether the user can manipulate that single record.
+- **Purpose:** Used for primary, independent business entities (e.g., `Product`, `Customer`, `Order`, `User`, `Task`).
+- **Core Operations:** Manages standard CRUD operations:
+  - `add_resource` (POST: create record)
+  - `fetch_resource` (GET: retrieve single record by ID)
+  - `update_resource` (PUT/PATCH: modify record)
+  - `delete_resource` (DELETE: remove record)
+  - `list_resources` (GET: list with filtering, searching, sorting, pagination, and CSV export).
+- **Permission Scope:** Permissions take only the single model instance:
+  - `has_read_permission(qs)`
+  - `has_change_permission(obj)`
+  - `has_delete_permission(obj)`
 
 ### AssociationModelResource
-- **Purpose:** Used for many-to-many junction/mapping entities (e.g., `UserRetailShop`, `CustomerAddress`, `RetailShopLocality`).
-- **Capabilities:** Focuses specifically on relationship management (`add_relation`, `update_relation`, `remove_relation`).
-- **Permission Scope:** Permission hooks take both the object and the incoming request payload (`has_change_permission(obj, data)`, `has_add_permission(obj, data)`), ensuring authorization can evaluate both sides of the relationship before linking or unlinking records.
+- **Purpose:** Used for many-to-many junction/mapping entities linking two primary models (e.g., `UserRetailShop`, `CustomerAddress`, `RetailShopLocality`, `UserRole`).
+- **Core Operations:** Manages relationship lifecycle rather than standalone records:
+  - `add_relation` (links Entity A to Entity B)
+  - `update_relation` (updates metadata on the junction table)
+  - `remove_relation` (unlinks Entity A from Entity B)
+- **Permission Scope:** Permissions take **both** the entity instance and the incoming payload:
+  - `has_change_permission(obj, data)`
+  - `has_add_permission(obj, data)`
+  This allows the authorization layer to inspect both sides of the relationship before granting access.
 
 ---
 
-## 6. Shared Utilities Reference (`src/utils/`)
+## 6. Why Import Order in `src/__init__.py` Matters
+
+In `src/__init__.py`, imports are arranged in a strict 6-stage sequence:
+
+```python
+# 1. Config & Core Extensions
+from .config import configs
+from .utils import api, db, ma, create_app, ReprMixin, bp, BaseMixin, admin, BaseSchema, BaseView, AssociationView
+
+# 2. Database Models (All modules)
+from .products import models
+from .orders import models
+from .user import models
+from .task import models
+
+# 3. Marshmallow Schemas (All modules)
+from .products import schemas
+from .orders import schemas
+from .user import schemas
+from .task import schemas
+
+# 4. REST API Views & Route Registration
+from .products import views
+from .orders import views
+from .user import views
+from .task import apiv1
+
+# 5. Security & Authentication Datastore
+from .utils.security import security
+
+# 6. Admin Panel Registration
+from .admin_panel import admin_manager
+```
+
+### Why this specific order is mandatory:
+1. **Resolving Cross-Model Foreign Keys:** Models have cross-package relationships (e.g., `Order` in orders references `RetailShop` and `User` in user). If all models are not loaded into SQLAlchemy's metadata before schemas or queries run, SQLAlchemy throws `NoReferencedTableError` or `UnmappedInstanceError`.
+2. **Schema Introspection Dependencies:** Marshmallow schemas (`ModelSchema`) inspect SQLAlchemy model table definitions and relationships at import time. If models were imported after schemas, Marshmallow would fail because the underlying tables and relationship properties would not exist yet.
+3. **Route Discovery via Decorator:** Views use `@api.register()` at the class level. This decorator executes at the moment `views.py` is imported, binding URL paths to the Blueprint. Importing views after models and schemas ensures all resources are fully defined before routes are bound.
+4. **Preventing Circular Imports:** In Python, importing a module that imports back to an unfinished module triggers `ImportError: cannot import name ... from partially initialized module`. This linear import pipeline eliminates circular dependency chains.
+5. **Security & Datastore Binding:** `security.py` initializes `SQLAlchemyUserDatastore(models.db, models.User, models.Role)`. The `User` and `Role` models must already be loaded into memory before the datastore binds them.
+
+---
+
+## 7. Shared Utilities Reference (`src/utils/`)
 
 | File | Purpose |
 |---|---|
@@ -145,7 +202,7 @@ The business logic in `src/utils/resource.py` separates entities into two specia
 
 ---
 
-## 7. Extending the System (Adding a New Domain Feature)
+## 8. Extending the System (Adding a New Domain Feature)
 
 To add a new entity (for example, `Supplier`):
 
