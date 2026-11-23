@@ -132,4 +132,9 @@ Since this project was originally built around 2017 with Python 3.6, several upd
 * **Issue:** Older frozen dependencies (`cffi==1.9.1`, `pycrypto`, legacy `pygresql`) failed without Visual C++ Build Tools.
 * **Fix:** Replaced with pre-compiled wheels direct from PyPI, specifically `psycopg2-binary`.
 
+### 6. `TypeError: validate() got an unexpected keyword argument 'extra_validators'`
+* **Issue:** Submitting forms like Register, Login, Forgot Password, or Confirm Account in the browser crashed with `TypeError: ...validate() got an unexpected keyword argument 'extra_validators'`.
+* **Cause:** Modern `Flask-WTF 1.3.0` calls `form.validate(extra_validators=extra_validators)` inside `validate_on_submit()`. Older `Flask-Security 3.0` form `validate()` methods only accept `self`.
+* **Fix:** Pinned `Flask-WTF<1.0` (`0.15.1`) in `requirements.txt` and updated custom form validate signatures to accept `*args, **kwargs`.
+
 
