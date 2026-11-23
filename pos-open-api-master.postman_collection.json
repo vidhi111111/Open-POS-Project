@@ -1,0 +1,467 @@
+{
+  "info": {
+    "_postman_id": "pos-open-api-master-v1",
+    "name": "pos-open-api-master",
+    "description": "POS project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5000",
+      "type": "string"
+    },
+    {
+      "key": "auth_base_url",
+      "value": "http://127.0.0.1:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "task_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "register-user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"vidhi@gmail.com\",\n  \"password\": \"12345678\",\n  \"name\": \"Vidhi\",\n  \"mobile_number\": \"9878865432\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/register/",
+          "host": ["{{auth_base_url}}"],
+          "path": ["register", ""]
+        },
+        "description": "Registers a new user account."
+      }
+    },
+    {
+      "name": "login-user",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.authentication_token) {",
+              "    pm.collectionVariables.set('auth_token', res.authentication_token);",
+              "    console.log('Saved auth_token:', res.authentication_token);",
+              "}",
+              "if (res.id) {",
+              "    pm.collectionVariables.set('user_id', res.id);",
+              "    console.log('Saved user_id:', res.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@pos.com\",\n  \"password\": \"admin123\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/login/",
+          "host": ["{{auth_base_url}}"],
+          "path": ["login", ""]
+        },
+        "description": "Authenticates credentials and auto-saves token into {{auth_token}}."
+      }
+    },
+    {
+      "name": "get-products",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/admin/product",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "product"]
+        },
+        "description": "Flask-Admin product dashboard view."
+      }
+    },
+    {
+      "name": "get-retail_shop_page",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/admin/retailshop/",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "retailshop", ""]
+        },
+        "description": "Flask-Admin retail shop management view."
+      }
+    },
+    {
+      "name": "get-all-user",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{auth_base_url}}/user",
+          "host": ["{{auth_base_url}}"],
+          "path": ["user"],
+          "query": [
+            {
+              "key": "__page",
+              "value": "1",
+              "disabled": true,
+              "description": "Page number for pagination"
+            },
+            {
+              "key": "__limit",
+              "value": "10",
+              "disabled": true,
+              "description": "Results per page"
+            },
+            {
+              "key": "__order_by",
+              "value": "name",
+              "disabled": true,
+              "description": "Sort field (e.g. name, email, -id)"
+            },
+            {
+              "key": "__only",
+              "value": "id,name,email",
+              "disabled": true,
+              "description": "Include only specified fields in output"
+            },
+            {
+              "key": "__name__contains",
+              "value": "Admin",
+              "disabled": true,
+              "description": "Filter by partial name"
+            }
+          ]
+        },
+        "description": "Lists all users with optional pagination, ordering, and field masking via query params."
+      }
+    },
+    {
+      "name": "get-role",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{auth_base_url}}/role",
+          "host": ["{{auth_base_url}}"],
+          "path": ["role"]
+        },
+        "description": "Lists all system roles and permissions."
+      }
+    },
+    {
+      "name": "create-user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "name",
+              "value": "Staff Assistant",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "assistant@pos.com",
+              "type": "text"
+            },
+            {
+              "key": "mobile_number",
+              "value": "9812300099",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "assistant123",
+              "type": "text"
+            },
+            {
+              "key": "active",
+              "value": "y",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/admin/user/new/",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "user", "new", ""]
+        },
+        "description": "Creates a user via Flask-Admin form (form-data)."
+      }
+    },
+    {
+      "name": "create-role",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "name",
+              "value": "test",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/admin/role/new/",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "role", "new", ""]
+        },
+        "description": "Creates a role"
+      }
+    },
+    {
+      "name": "create-task",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.data && res.data.length > 0 && res.data[0].id) {",
+              "    pm.collectionVariables.set('task_id', res.data[0].id);",
+              "    console.log('Saved task_id:', res.data[0].id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"task creation\",\n  \"description\": \"retail\",\n  \"status\": \"pending\",\n  \"due_date\": \"2026-11-30T18:00:00\",\n  \"user_id\": \"{{user_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{auth_base_url}}/tasks/",
+          "host": ["{{auth_base_url}}"],
+          "path": ["tasks", ""]
+        },
+        "description": "Creates a new task and saves ID into {{task_id}}."
+      }
+    },
+    {
+      "name": "get-task",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{auth_base_url}}/tasks/?__only=title,id",
+          "host": ["{{auth_base_url}}"],
+          "path": ["tasks", ""],
+          "query": [
+            {
+              "key": "__only",
+              "value": "title,id",
+              "disabled": false,
+              "description": "Only return specified fields"
+            },
+            {
+              "key": "__page",
+              "value": "1",
+              "disabled": true,
+              "description": "Page number"
+            },
+            {
+              "key": "__limit",
+              "value": "10",
+              "disabled": true,
+              "description": "Items per page"
+            },
+            {
+              "key": "__status__equal",
+              "value": "pending",
+              "disabled": true,
+              "description": "Filter by status (pending, in_progress, done)"
+            },
+            {
+              "key": "__order_by",
+              "value": "-created_on",
+              "disabled": true,
+              "description": "Sort order (-field for descending)"
+            },
+            {
+              "key": "__title__contains",
+              "value": "Report",
+              "disabled": true,
+              "description": "Search in task title"
+            }
+          ]
+        },
+        "description": "__only "
+      }
+    },
+    {
+      "name": "get-task-byId",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{auth_base_url}}/task/{{task_id}}/",
+          "host": ["{{auth_base_url}}"],
+          "path": ["task", "{{task_id}}", ""]
+        },
+        "description": "Fetches single task by ID."
+      }
+    },
+    {
+      "name": "update-task-byId",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"in_progress\",\n  \"description\": \"\"\n}"
+        }, 
+        "url": {
+          "raw": "{{auth_base_url}}/task/{{task_id}}/",
+          "host": ["{{auth_base_url}}"],
+          "path": ["task", "{{task_id}}", ""]
+        },
+        "description": "Partially updates an existing task (status, description, etc.)."
+      }
+    },
+    {
+      "name": "delete-task",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authentication-Token",
+            "value": "{{auth_token}}"
+          },
+          {
+            "key": "Authorization",
+            "value": "{{auth_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{auth_base_url}}/task/{{task_id}}/",
+          "host": ["{{auth_base_url}}"],
+          "path": ["task", "{{task_id}}", ""]
+        },
+        "description": "Deletes a task"
+      }
+    }
+  ]
+}

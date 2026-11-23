@@ -62,3 +62,4 @@ Detailed documentation available in this repository:
 -  **[Setup & Troubleshooting Guide](SETUP.md)** — Step-by-step installation, prerequisites, and common fixes.
 -  **[API Reference](API_REFERENCE.md)** — Complete list of REST API endpoints and payload examples.
 -  **[System Architecture](ARCHITECTURE.md)** — Project structure, database models, and design patterns.
+-  **[Postman Collection](pos-open-api-master.postman_collection.json)** — Ready-to-import Postman collection.
