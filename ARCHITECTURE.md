@@ -1,149 +1,149 @@
-# Open POS API – Architecture & Request Flow
+# Architecture & Design Overview
 
-This document outlines the architectural structure, request lifecycle, and modular design of the Open POS Flask REST API.
+This document describes the architectural design, directory organization, request lifecycle, and modular patterns of the Open POS API.
+
+The project is a RESTful point-of-sale backend built with **Flask**, **PostgreSQL**, and **SQLAlchemy**. The application follows a modular, layer-separated structure where domain features are organized into isolated packages with standardized responsibility layers.
 
 ---
 
-## 1. Project Structure & File Roles
+## 1. Project Directory Structure
 
-### Directory Layout
 ```text
 open-pos-api-master/
-├── manager.py                   # App entrypoint & CLI commands (create-db, create-admin)
-├── .env                         # Environment variables (DB URL, secret keys)
+├── manager.py                   # Application entrypoint & Flask CLI commands
+├── .env                         # Environment configuration (DB connection, secret keys)
 ├── requirements.txt             # Project dependencies
-├── migrations/                  # Database migration scripts (Flask-Migrate)
+├── migrations/                  # Alembic database migration scripts
 └── src/
-    ├── __init__.py              # Central module registry & strict import sequence
+    ├── __init__.py              # Application module initialization & dependency ordering
     ├── config.py                # Environment configurations (Dev, Test, Prod)
     │
-    ├── utils/                   # Shared framework core
+    ├── utils/                   # Shared architectural core & framework base classes
     │   ├── factory.py           # Application Factory: create_app()
-    │   ├── blue_prints.py       # Global API Blueprint (/api/v1)
+    │   ├── blue_prints.py       # Central Blueprint definition (prefix: /api/v1)
     │   ├── api.py               # ApiFactory, @api.register(), BaseView, AssociationView
     │   ├── resource.py          # ModelResource & AssociationModelResource base classes
     │   ├── models.py            # db instance & BaseMixin (UUID id, audit timestamps)
     │   ├── schema.py            # ma instance & BaseSchema configuration
-    │   ├── security.py          # Flask-Security setup & UserDatastore
+    │   ├── security.py          # Flask-Security setup & SQLAlchemyUserDatastore
     │   ├── methods.py           # Allowed HTTP action definitions (List, Fetch, Create, etc.)
     │   ├── operators.py         # Dynamic query filter operators (Equal, Contains, In, etc.)
     │   ├── exceptions.py        # Centralized custom API exceptions
-    │   └── admin.py             # Flask-Admin initialization
+    │   └── admin.py             # Flask-Admin initialization & access controls
     │
-    ├── products/                # Catalog, categories, brands, stock
-    ├── orders/                  # Orders, items, discounts, payments
-    ├── user/                    # Users, roles, permissions, shops, customers
-    ├── task/                    # Background & scheduled task management
-    └── admin_panel/             # Flask-Admin backoffice views
+    ├── products/                # Product catalog, categories, brands, and stock
+    ├── orders/                  # Order management, line items, discounts, and payments
+    ├── user/                    # Users, roles, permissions, retail shops, and customers
+    ├── task/                    # Asynchronous & scheduled background tasks
+    │   └── (Each module contains: models.py, schemas.py, resources.py, views.py)
+    │
+    └── admin_panel/             # Flask-Admin backoffice configuration
+        └── admin_manager.py     # Registers SQLAlchemy models with admin ModelViews
 ```
-
-### Role of Key Files
-
-| File | Core Role |
-|---|---|
-| `manager.py` | Starts the app, loads environment config (`.env`), and defines Flask CLI commands (`create-db`, `create-admin`, `runserver`). |
-| `src/__init__.py` | Central import registry that loads models, schemas, views, and security in a strict, non-circular order. |
-| `src/utils/factory.py` | Contains `create_app()` factory function to configure Flask, register Blueprints, enable CORS, and bind extensions (`db`, `ma`, `api`, `security`, `admin`). |
-| `src/utils/blue_prints.py` | Declares the primary API Blueprint (`pos`) with URL prefix `/api/v1`. |
-| `src/utils/api.py` | Defines `ApiFactory` with `@api.register()` decorator and provides base classes `BaseView` and `AssociationView`. |
-| `src/utils/security.py` | Configures Flask-Security authentication, tokens, user datastore, and custom registration forms. |
 
 ---
 
-## 2. HTTP Request Execution Flow
+## 2. The 4-Layer Module Design
 
-Every API call follows this end-to-end processing pipeline:
+Every business module (`products`, `orders`, `user`, `task`) is organized into four standardized layers:
 
-```text
-HTTP Request (e.g. POST /api/v1/task)
-  │
-  ▼
-Blueprint (/api/v1)
-  │
-  ▼
-flask_restful Resource (BaseView)
-  │
-  ▼
-auth_token_required (Verifies Authorization token in request header)
-  │
-  ▼
-roles_required / roles_accepted (Checks user role permissions)
-  │
-  ▼
-Handler (get / post / put / patch / delete)
-  │
-  ▼
-Marshmallow Schema (Validates & deserializes JSON via schema.load)
-  │
-  ▼
-SQLAlchemy (Executes ORM query/mutation & commits to PostgreSQL)
-  │
-  ▼
-Marshmallow Schema (Serializes database object via schema.dump)
-  │
-  ▼
-JSON Response (HTTP status code + formatted JSON body)
-```
-
-### Step-by-Step Breakdown:
-1. **HTTP Request:** Client sends request to `/api/v1/<endpoint>` with optional headers (`Authorization`) and payload.
-2. **Blueprint Routing:** `src/utils/blue_prints.py` captures prefix `/api/v1` and dispatches to registered Flask-RESTful resource.
-3. **Resource Resolution:** `ApiFactory` resolves the matching `BaseView` or `AssociationView`.
-4. **Authentication (`auth_token_required`):** Validates user authentication token from headers. If invalid or missing, immediately returns `401 Unauthorized`.
-5. **Role Authorization (`roles_required`):** Verifies if current user has the required role (e.g., `admin`, `owner`). If unauthorized, returns `403 Forbidden`.
-6. **Handler Execution:** Calls appropriate HTTP verb method (`post()`, `get()`, `patch()`, `delete()`).
-7. **Schema Validation (`schema.load`):** Marshmallow validates incoming payload against schema rules (types, required fields). If invalid, returns `400 Bad Request`.
-8. **SQLAlchemy ORM:** Performs database operation (SELECT, INSERT, UPDATE, DELETE) against PostgreSQL.
-9. **Schema Serialization (`schema.dump`):** Serializes database model into JSON, applying field masks (`__only`, `__exclude`).
-10. **JSON Response:** Returns final JSON payload with appropriate HTTP status code (`200 OK`, `201 Created`, etc.).
-
----
-
-## 3. ModelResource vs AssociationModelResource
-
-In `src/utils/resource.py`, business logic is divided into two distinct resource base classes:
-
-| Feature | `ModelResource` | `AssociationModelResource` |
+| Layer | File | Role & Responsibility |
 |---|---|---|
-| **Target Entity** | Primary, standalone models (e.g. `Product`, `Order`, `User`, `Task`) | Many-to-Many junction tables (e.g. `UserRetailShop`, `CustomerAddress`, `RetailShopLocality`) |
-| **Core Operations** | Full CRUD: `add_resource`, `fetch_resource`, `update_resource`, `delete_resource`, and filtered list queries | Relationship management: `add_relation`, `update_relation`, `remove_relation` |
-| **Permission Scope** | Evaluates permissions on a single entity instance:<br>`has_read_permission(qs)`<br>`has_change_permission(obj)`<br>`has_delete_permission(obj)` | Evaluates permissions across **both** sides of the relationship:<br>`has_change_permission(obj, data)`<br>`has_add_permission(obj, data)` |
-| **Query Support** | Filtering, search, ordering, pagination, and CSV export | Links/unlinks two existing entities via foreign keys |
+| **Model** | `models.py` | Defines the database schema using SQLAlchemy ORM. Inherits from `BaseMixin` for automatic UUID primary keys (`id`), `created_on`, and `updated_on` timestamps. |
+| **Schema** | `schemas.py` | Handles two-way data transformation with Marshmallow: serializes ORM models to JSON (`dump`), deserializes JSON input to objects (`load`), and validates payloads. |
+| **Resource** | `resources.py` | Encapsulates business logic: allowed query filters, pagination boundaries, field masking (`only`/`exclude`), role requirements, and permission checks. |
+| **View** | `views.py` | Exposes REST endpoints by subclassing `BaseView` or `AssociationView` and binding them to the API router with the `@api.register()` decorator. |
 
 ---
 
-## 4. Why Import Order in `src/__init__.py` Matters
+## 3. Application Bootstrap Lifecycle
 
-Imports in `src/__init__.py` must follow a strict sequential order:
+When the application launches, initialization proceeds in the following sequence:
 
-```python
-# 1. Config & Core Extensions (db, ma, api, bp)
-# 2. Database Models (products, orders, user, task)
-# 3. Marshmallow Schemas (products, orders, user, task)
-# 4. REST API Views (products, orders, user, task)
-# 5. Security & Datastore (security)
-# 6. Admin Panel (admin_manager)
-```
-
-### Key Reasons:
-1. **Cross-Model Foreign Keys:** Models reference each other across packages (e.g., `Order` references `RetailShop` and `User`). All models must be registered in SQLAlchemy's metadata before schemas or queries access them, preventing `NoReferencedTableError`.
-2. **Schema Introspection:** Marshmallow schemas (`ModelSchema`) inspect SQLAlchemy model tables and relationships upon declaration. If models are not loaded first, schema initialization fails.
-3. **Route Registration via Decorators:** Views use `@api.register()` which executes at import time to bind endpoints to the Blueprint. Models and schemas must be ready before routes are bound.
-4. **Preventing Circular Imports:** A strict linear order prevents cyclic dependencies where module A imports B which imports A, avoiding `ImportError: cannot import name ... from partially initialized module`.
-5. **Security Datastore Binding:** `security.py` initializes `SQLAlchemyUserDatastore` with `User` and `Role` models. Both models must be in memory before security is configured.
+1. **Environment Loading:** `manager.py` calls `load_dotenv()` to read environment variables from `.env`.
+2. **Central Registry Import:** `manager.py` imports `src/__init__.py`. This triggers the registration of base utilities, database models, schemas, and API views in an orderly sequence to resolve cross-model dependencies cleanly without circular import conflicts.
+3. **Route Discovery:** During view module imports, the `@api.register()` decorator binds URL endpoints and HTTP methods to the central Blueprint (`/api/v1`).
+4. **Application Factory:** `create_app()` in `src/utils/factory.py` instantiates `Flask(__name__)`, loads configuration settings, enables CORS, registers the blueprint, and initializes extensions (`api`, `db`, `ma`, `security`, `admin`).
+5. **Runtime Server:** `flask run` spins up the development server at `http://127.0.0.1:5000/`.
 
 ---
 
-## 5. The 4-Layer Module Architecture
+## 4. HTTP Request Execution Pipeline
 
-Each feature module (`products`, `orders`, `user`, `task`) follows a clean 4-layer separation:
+Every incoming API call follows a structured execution pipeline from route matching to response delivery:
 
 ```text
-┌────────────────┐     ┌────────────────┐     ┌────────────────┐     ┌────────────────┐
-│   models.py    │ ──> │   schemas.py   │ ──> │  resources.py  │ ──> │    views.py    │
-│ (Database ORM) │     │(Serialization) │     │(Business Logic)│     │(REST Endpoints)│
-└────────────────┘     └────────────────┘     └────────────────┘     └────────────────┘
+HTTP Request (e.g. POST /api/v1/product)
+   │
+   ▼
+[ Blueprint Routing ]
+   Matches /api/v1 prefix and dispatches to registered endpoint
+   │
+   ▼
+[ View Resolution ]
+   Flask-RESTful resolves the target BaseView class
+   │
+   ▼
+[ Authentication Guard ]
+   auth_token_required verifies the 'Authentication-Token' header
+   │
+   ▼
+[ Role Authorization ]
+   roles_accepted / roles_required confirms user access privileges
+   │
+   ▼
+[ Handler Execution ]
+   Executes get, post, put, patch, or delete method in BaseView
+   │
+   ├── Filter & Permission Hooks: apply_filters(), has_read_permission()
+   │
+   ▼
+[ Schema Validation & Serialization ]
+   Marshmallow validates input (schema.load) or formats output (schema.dump)
+   │
+   ▼
+[ Database Transaction ]
+   SQLAlchemy ORM commits or rolls back operations in PostgreSQL
+   │
+   ▼
+JSON Response (HTTP Status Code + Serialized Payload)
 ```
+
+---
+
+## 5. Resource Architecture: Primary vs Association Resources
+
+The business logic in `src/utils/resource.py` separates entities into two specialized base classes:
+
+### ModelResource
+- **Purpose:** Used for primary, standalone domain models (e.g., `Product`, `Customer`, `Order`, `User`).
+- **Capabilities:** Manages full CRUD operations (`add_resource`, `update_resource`, `delete_resource`, and filtered list queries with pagination and CSV export).
+- **Permission Scope:** Permission hooks take only the object instance (`has_read_permission(qs)`, `has_change_permission(obj)`, `has_delete_permission(obj)`), focusing solely on whether the user can manipulate that single record.
+
+### AssociationModelResource
+- **Purpose:** Used for many-to-many junction/mapping entities (e.g., `UserRetailShop`, `CustomerAddress`, `RetailShopLocality`).
+- **Capabilities:** Focuses specifically on relationship management (`add_relation`, `update_relation`, `remove_relation`).
+- **Permission Scope:** Permission hooks take both the object and the incoming request payload (`has_change_permission(obj, data)`, `has_add_permission(obj, data)`), ensuring authorization can evaluate both sides of the relationship before linking or unlinking records.
+
+---
+
+## 6. Shared Utilities Reference (`src/utils/`)
+
+| File | Purpose |
+|---|---|
+| `factory.py` | `create_app()` factory function to configure and assemble the Flask application. |
+| `blue_prints.py` | Declares the global API Blueprint (`pos`) with URL prefix `/api/v1`. |
+| `api.py` | `ApiFactory` with the `@api.register()` decorator, plus `BaseView` and `AssociationView` base classes. |
+| `resource.py` | Core `ModelResource` and `AssociationModelResource` base classes defining pagination, filtering, and authorization hooks. |
+| `models.py` | Initializes SQLAlchemy `db` and defines `BaseMixin` (providing UUID `id`, `created_on`, `updated_on`). |
+| `schema.py` | Initializes Marshmallow `ma` and defines `BaseSchema` with session integration. |
+| `security.py` | Configures Flask-Security and initializes `SQLAlchemyUserDatastore` with `User` and `Role` models. |
+| `methods.py` | Defines allowed endpoint operations (`List`, `Fetch`, `Create`, `Update`, `Delete`, `BulkUpdate`). |
+| `operators.py` | Dynamic filter operators used in resource querysets (`Equal`, `Contains`, `In`, `GreaterThan`, etc.). |
+| `exceptions.py` | Custom exception hierarchy for structured database and validation error responses. |
+| `admin.py` | Sets up Flask-Admin with login-protected views. |
+
+---
 
 1. **Model (`models.py`):** SQLAlchemy ORM table definitions inheriting from `BaseMixin` (UUID `id`, `created_on`, `updated_on`).
 2. **Schema (`schemas.py`):** Marshmallow schemas for serialization (`dump`), deserialization (`load`), and input validation.
