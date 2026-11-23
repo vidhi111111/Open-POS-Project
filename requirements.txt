@@ -4,6 +4,7 @@ Werkzeug<2.0
 Flask-Script
 Flask-Cors
 WTForms<3.0
+Flask-WTF<1.0
 
 # --- Database & Migrations ---
 Flask-SQLAlchemy<3.0

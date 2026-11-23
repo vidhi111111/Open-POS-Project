@@ -9,13 +9,13 @@ class ExtendedRegisterForm(ConfirmRegisterForm):
     name = StringField('Name')
     mobile_number = StringField('Mobile Number')
 
-    def validate(self):
+    def validate(self, *args, **kwargs):
         # Auto-fill name and mobile_number if not provided (e.g. from browser form)
         if not self.name.data and self.email.data:
             self.name.data = self.email.data.split('@')[0]
         if not self.mobile_number.data:
             self.mobile_number.data = f"9{random.randint(100000000, 999999999)}"
-        return super().validate()
+        return super().validate(*args, **kwargs)
 
 class AppSecurity(Security):
     def init_app(self, app, datastore=None, **kwargs):
